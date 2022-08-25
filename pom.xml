@@ -2,6 +2,7 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
 	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
 	<modelVersion>4.0.0</modelVersion>
+
 	<groupId>org.litesoft</groupId>
 	<artifactId>object-fields</artifactId>
 	<version>1.0.1</version>
@@ -11,11 +12,40 @@
 
 	<description>Object's Fields related definition, access, and toString builder</description>
 
+	<url>https://github.com/litesoft-java/object-fields</url>
+
+	<licenses>
+		<license>
+			<name>The Unlicense</name>
+			<url>https://github.com/litesoft-java/object-fields/blob/main/LICENSE</url>
+		</license>
+	</licenses>
+
+	<organization>
+		<name>LiteSoft</name>
+		<url>http://litesoft.org</url>
+	</organization>
+
+	<developers>
+		<developer>
+			<name>George Smith</name>
+			<email>litesoft@gmail.com</email>
+			<organization>LiteSoft</organization>
+			<organizationUrl>http://LiteSoft.org</organizationUrl>
+		</developer>
+	</developers>
+
+	<scm>
+		<connection>scm:git:git://github.com/litesoft-java/object-fields.git</connection>
+		<developerConnection>scm:git:ssh://github.com:litesoft-java/object-fields.git</developerConnection>
+		<url>https://github.com/litesoft-java/object-fields</url>
+	</scm>
+
 	<distributionManagement>
 		<repository>
-			<id>github</id>
-			<name>GitHub Litesoft Apache Maven Packages</name>
-			<url>https://maven.pkg.github.com/litesoft-java/object-fields</url>
+			<id>releases</id>
+			<url>https://oss.sonatype.org/service/local/staging/deploy/maven2</url>
+			<!--<url>https://oss.sonatype.org/content/repositories/releases</url>-->
 		</repository>
 	</distributionManagement>
 
@@ -34,6 +64,74 @@
 			<scope>test</scope>
 		</dependency>
 	</dependencies>
+
+	<profiles>
+		<profile>
+			<id>ossrh</id>
+			<build>
+				<plugins>
+
+					<plugin>
+						<groupId>org.apache.maven.plugins</groupId>
+						<artifactId>maven-source-plugin</artifactId>
+						<version>3.2.1</version>
+						<executions>
+							<execution>
+								<id>attach-sources</id>
+								<goals>
+									<goal>jar</goal>
+								</goals>
+							</execution>
+						</executions>
+					</plugin>
+
+					<plugin>
+						<groupId>org.apache.maven.plugins</groupId>
+						<artifactId>maven-javadoc-plugin</artifactId>
+						<version>3.4.1</version>
+						<executions>
+							<execution>
+								<id>attach-javadocs</id>
+								<goals>
+									<goal>jar</goal>
+								</goals>
+							</execution>
+						</executions>
+					</plugin>
+
+					<plugin>
+						<groupId>org.apache.maven.plugins</groupId>
+						<artifactId>maven-gpg-plugin</artifactId>
+						<version>3.0.1</version>
+						<executions>
+							<execution>
+								<id>sign-artifacts</id>
+								<phase>verify</phase>
+								<goals>
+									<goal>sign</goal>
+								</goals>
+							</execution>
+						</executions>
+					</plugin>
+
+					<!-- Manually publish from https://oss.sonatype.org/#stagingRepositories -->
+
+					<!--<plugin>-->
+					<!--<groupId>org.sonatype.plugins</groupId>-->
+					<!--<artifactId>nexus-staging-maven-plugin</artifactId>-->
+					<!--<version>1.6.7</version>-->
+					<!--<extensions>true</extensions>-->
+					<!--<configuration>-->
+					<!--<serverId>ossrh</serverId>-->
+					<!--<nexusUrl>https://oss.sonatype.org/</nexusUrl>-->
+					<!--<autoReleaseAfterClose>true</autoReleaseAfterClose>-->
+					<!--</configuration>-->
+					<!--</plugin>-->
+
+				</plugins>
+			</build>
+		</profile>
+	</profiles>
 
 	<build>
 		<finalName>object-fields</finalName>
