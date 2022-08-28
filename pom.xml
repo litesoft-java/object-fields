@@ -1,149 +1,153 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
-	<modelVersion>4.0.0</modelVersion>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
 
-	<groupId>org.litesoft</groupId>
-	<artifactId>object-fields</artifactId>
-	<version>1.0.1</version>
-	<packaging>jar</packaging>
+    <groupId>org.litesoft</groupId>
+    <artifactId>object-fields</artifactId>
+    <version>1.0.1</version>
+    <packaging>jar</packaging>
 
-	<name>object-fields</name>
+    <name>object-fields</name>
 
-	<description>Object's Fields related definition, access, and toString builder</description>
+    <description>Object's Fields related definition, access, and toString builder</description>
 
-	<url>https://github.com/litesoft-java/object-fields</url>
+    <url>https://github.com/litesoft-java/object-fields</url>
 
-	<licenses>
-		<license>
-			<name>The Unlicense</name>
-			<url>https://github.com/litesoft-java/object-fields/blob/main/LICENSE</url>
-		</license>
-	</licenses>
+    <licenses>
+        <license>
+            <name>The Unlicense</name>
+            <url>https://github.com/litesoft-java/object-fields/blob/main/LICENSE</url>
+        </license>
+    </licenses>
 
-	<organization>
-		<name>LiteSoft</name>
-		<url>http://litesoft.org</url>
-	</organization>
+    <organization>
+        <name>LiteSoft</name>
+        <url>http://litesoft.org</url>
+    </organization>
 
-	<developers>
-		<developer>
-			<name>George Smith</name>
-			<email>litesoft@gmail.com</email>
-			<organization>LiteSoft</organization>
-			<organizationUrl>http://LiteSoft.org</organizationUrl>
-		</developer>
-	</developers>
+    <developers>
+        <developer>
+            <name>George Smith</name>
+            <email>litesoft@gmail.com</email>
+            <organization>LiteSoft</organization>
+            <organizationUrl>http://LiteSoft.org</organizationUrl>
+        </developer>
+    </developers>
 
-	<scm>
-		<connection>scm:git:git://github.com/litesoft-java/object-fields.git</connection>
-		<developerConnection>scm:git:ssh://github.com:litesoft-java/object-fields.git</developerConnection>
-		<url>https://github.com/litesoft-java/object-fields</url>
-	</scm>
+    <scm>
+        <connection>scm:git:git://github.com/litesoft-java/object-fields.git</connection>
+        <developerConnection>scm:git:ssh://github.com:litesoft-java/object-fields.git</developerConnection>
+        <url>https://github.com/litesoft-java/object-fields</url>
+    </scm>
 
-	<distributionManagement>
-		<repository>
-			<id>releases</id>
-			<url>https://oss.sonatype.org/service/local/staging/deploy/maven2</url>
-			<!--<url>https://oss.sonatype.org/content/repositories/releases</url>-->
-		</repository>
-	</distributionManagement>
+    <distributionManagement>
+        <repository>
+            <id>releases</id>
+            <url>https://oss.sonatype.org/service/local/staging/deploy/maven2</url>
+        </repository>
+    </distributionManagement>
 
-	<properties>
-		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-		<java.version>17</java.version>
-		<maven.compiler.source>${java.version}</maven.compiler.source>
-		<maven.compiler.target>${java.version}</maven.compiler.target>
-	</properties>
+    <properties>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <java.version>17</java.version>
+        <maven.compiler.source>${java.version}</maven.compiler.source>
+        <maven.compiler.target>${java.version}</maven.compiler.target>
+    </properties>
 
-	<dependencies>
-		<dependency>
-			<groupId>org.junit.jupiter</groupId>
-			<artifactId>junit-jupiter</artifactId>
-			<version>5.9.0</version>
-			<scope>test</scope>
-		</dependency>
-	</dependencies>
+    <dependencies>
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <version>5.9.0</version>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
 
-	<profiles>
-		<profile>
-			<id>ossrh</id>
-			<build>
-				<plugins>
+    <profiles>
+        <profile>
+            <id>ossrh</id>
+            <build>
+                <plugins>
 
-					<plugin>
-						<groupId>org.apache.maven.plugins</groupId>
-						<artifactId>maven-source-plugin</artifactId>
-						<version>3.2.1</version>
-						<executions>
-							<execution>
-								<id>attach-sources</id>
-								<goals>
-									<goal>jar</goal>
-								</goals>
-							</execution>
-						</executions>
-					</plugin>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-source-plugin</artifactId>
+                        <version>3.2.1</version>
+                        <executions>
+                            <execution>
+                                <id>attach-sources</id>
+                                <goals>
+                                    <goal>jar</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                    </plugin>
 
-					<plugin>
-						<groupId>org.apache.maven.plugins</groupId>
-						<artifactId>maven-javadoc-plugin</artifactId>
-						<version>3.4.1</version>
-						<executions>
-							<execution>
-								<id>attach-javadocs</id>
-								<goals>
-									<goal>jar</goal>
-								</goals>
-							</execution>
-						</executions>
-					</plugin>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-javadoc-plugin</artifactId>
+                        <version>3.4.1</version>
+                        <configuration>
+                            <doclint>-html,-syntax,-accessibility,-missing</doclint>
+                            <failOnError>false</failOnError>
+                            <quiet>true</quiet>
+                        </configuration>
+                        <executions>
+                            <execution>
+                                <id>attach-javadocs</id>
+                                <goals>
+                                    <goal>jar</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                    </plugin>
 
-					<plugin>
-						<groupId>org.apache.maven.plugins</groupId>
-						<artifactId>maven-gpg-plugin</artifactId>
-						<version>3.0.1</version>
-						<executions>
-							<execution>
-								<id>sign-artifacts</id>
-								<phase>verify</phase>
-								<goals>
-									<goal>sign</goal>
-								</goals>
-							</execution>
-						</executions>
-					</plugin>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-gpg-plugin</artifactId>
+                        <version>3.0.1</version>
+                        <executions>
+                            <execution>
+                                <id>sign-artifacts</id>
+                                <phase>verify</phase>
+                                <goals>
+                                    <goal>sign</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                    </plugin>
 
-					<!-- Manually publish from https://oss.sonatype.org/#stagingRepositories -->
+                    <!--					&lt;!&ndash; Manually publish from https://oss.sonatype.org/#stagingRepositories &ndash;&gt;-->
 
-					<!--<plugin>-->
-					<!--<groupId>org.sonatype.plugins</groupId>-->
-					<!--<artifactId>nexus-staging-maven-plugin</artifactId>-->
-					<!--<version>1.6.7</version>-->
-					<!--<extensions>true</extensions>-->
-					<!--<configuration>-->
-					<!--<serverId>ossrh</serverId>-->
-					<!--<nexusUrl>https://oss.sonatype.org/</nexusUrl>-->
-					<!--<autoReleaseAfterClose>true</autoReleaseAfterClose>-->
-					<!--</configuration>-->
-					<!--</plugin>-->
+                    <plugin>
+                        <groupId>org.sonatype.plugins</groupId>
+                        <artifactId>nexus-staging-maven-plugin</artifactId>
+                        <version>1.6.13</version>
+                        <extensions>true</extensions>
+                        <configuration>
+                            <serverId>ossrh</serverId>
+                            <nexusUrl>https://oss.sonatype.org/</nexusUrl>
+                            <autoReleaseAfterClose>false</autoReleaseAfterClose>
+                        </configuration>
+                    </plugin>
 
-				</plugins>
-			</build>
-		</profile>
-	</profiles>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
 
-	<build>
-		<finalName>object-fields</finalName>
-		<plugins>
+    <build>
+        <plugins>
 
-			<plugin>
-				<groupId>org.apache.maven.plugins</groupId>
-				<artifactId>maven-surefire-plugin</artifactId>
-				<version>3.0.0-M7</version>
-			</plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <version>3.0.0-M7</version>
+            </plugin>
 
-		</plugins>
-	</build>
+        </plugins>
+    </build>
 
 </project>
