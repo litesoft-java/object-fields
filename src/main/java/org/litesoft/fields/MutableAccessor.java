@@ -3,7 +3,6 @@ package org.litesoft.fields;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
 
-@SuppressWarnings({"unused", "UnusedReturnValue"})
 public class MutableAccessor<T, R> extends Accessor<T, R> implements BiConsumer<T, R> {
     public static <T, R> MutableAccessor<T, R> of( String name, Function<T, R> accessor, BiConsumer<T, R> setter ) {
         return of( name, "", accessor, setter );

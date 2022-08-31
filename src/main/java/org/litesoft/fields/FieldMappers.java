@@ -4,7 +4,6 @@ import java.util.LinkedHashMap;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
 
-@SuppressWarnings("unused")
 public class FieldMappers<SourceT, TargetT> {
     private final Class<SourceT> sourceT;
     private final Class<TargetT> targetT;
@@ -61,7 +60,9 @@ public class FieldMappers<SourceT, TargetT> {
 
     public <R> FieldMappers<SourceT, TargetT> add( String fieldName, BiConsumer<TargetT, R> setter, Function<SourceT, R> getter ) {
         Mapper<?> prev = mappers.put( fieldName, new Mapper<>( setter, getter ) );
-        // XXX
+        if ( prev != null ) {
+            throw new Error( "Attempt to register a duplicate field of: " + fieldName );
+        }
         return this;
     }
 

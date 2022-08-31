@@ -10,7 +10,6 @@ import java.util.function.Function;
 
 import org.litesoft.utils.Cast;
 
-@SuppressWarnings({"unused", "UnusedReturnValue"})
 public class FieldAccessors<T> {
     static final String ERROR_ALREADY_DONE = "FieldAccessors already closed, w/ previous done()";
     static final String ERROR_INVALID_DONE = "FieldAccessors closed, w/ done(), with no Accessors added";
@@ -30,7 +29,7 @@ public class FieldAccessors<T> {
         return new FieldAccessors<>( type );
     }
 
-    public <R> FieldAccessors<T> done() {
+    public FieldAccessors<T> done() {
         if ( done ) {
             throw new Error( ERROR_ALREADY_DONE );
         }
@@ -102,6 +101,7 @@ public class FieldAccessors<T> {
         return add( Accessor.of( name, "required", accessor ) );
     }
 
+    @SuppressWarnings("unused")
     public <R> FieldAccessors<T> required( String name, Function<T, R> accessor, BiConsumer<T, R> setter ) {
         return add( MutableAccessor.of( name, "required", accessor, setter ) );
     }
