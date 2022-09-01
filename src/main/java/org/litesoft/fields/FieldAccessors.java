@@ -97,6 +97,11 @@ public class FieldAccessors<T> {
         accessor.asMutable().setValue( instance, value );
     }
 
+    @SuppressWarnings("unused")
+    public <R> FieldAccessors<T> auto( String name, Function<T, R> accessor ) {
+        return add( Accessor.of( name, "auto", accessor ) );
+    }
+
     public <R> FieldAccessors<T> required( String name, Function<T, R> accessor ) {
         return add( Accessor.of( name, "required", accessor ) );
     }
