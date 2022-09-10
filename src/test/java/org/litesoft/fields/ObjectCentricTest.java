@@ -224,6 +224,7 @@ class ObjectCentricTest {
         }
 
         @Override
+        @SuppressWarnings("com.haulmont.jpb.EqualsDoesntCheckParameterClass")
         public boolean equals( Object o ) {
             return FAS.equalInstancesWithEqualTypes( this, o ); // ChildDTO.equals(SubChildDTO) -> false
         }
@@ -240,6 +241,7 @@ class ObjectCentricTest {
         }
 
         @Override
+        @SuppressWarnings("com.haulmont.jpb.EqualsDoesntCheckParameterClass")
         public boolean equals( Object o ) {
             return FAS.equalInstancesWithSubTypes( this, o ); // SubChildDTO.equals(ChildDTO) -> true
         }
