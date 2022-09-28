@@ -1,64 +1,91 @@
 package org.litesoft.fields;
 
 import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
 
-public class FieldMappers<SourceT, TargetT> {
-    private final Class<SourceT> sourceT;
+import org.litesoft.utils.TemplatedMessage;
+import org.litesoft.utils.TemplatedMessageException;
+
+public class FieldMappers<TargetT, SourceT> {
     private final Class<TargetT> targetT;
+    private final Class<SourceT> sourceT;
 
     final LinkedHashMap<String, Mapper<?>> mappers = new LinkedHashMap<>(); // LinkedHashMap to force consistent ordering (add order)!
 
-    public static <SourceT, TargetT> FieldMappers<SourceT, TargetT> of( Class<SourceT> sourceT, Class<TargetT> targetT ) {
-        return new FieldMappers<>( sourceT, targetT );
+    public static <TargetT, SourceT> FieldMappers<TargetT, SourceT> of( Class<TargetT> targetT, Class<SourceT> sourceT ) {
+        return new FieldMappers<>( targetT, sourceT );
     }
 
-    public void map( SourceT source, TargetT target ) {
-        assertType( source, sourceT, "source instance" );
+    public void map( TargetT target, SourceT source ) {
+        map( target, source, null );
+    }
+
+    public void map( TargetT target, SourceT source, Map<String, FieldError> fieldErrors ) {
         assertType( target, targetT, "target instance" );
-        for ( Mapper<?> mapper : mappers.values() ) {
-            mapper.map( source, target );
+        assertType( source, sourceT, "source instance" );
+        for ( Map.Entry<String, Mapper<?>> entry : mappers.entrySet() ) {
+            TemplatedMessage templatedMessage;
+            RuntimeException rte;
+            Mapper<?> mapper = entry.getValue();
+            try {
+                mapper.map( source, target );
+                continue;
+            }
+            catch ( TemplatedMessageException e ) {
+                rte = e;
+                templatedMessage = e.getTemplatedMessage();
+            }
+            catch ( RuntimeException e ) {
+                rte = e;
+                templatedMessage = new TemplatedMessage( e.getMessage() );
+            }
+            if ( fieldErrors == null ) {
+                throw rte;
+            }
+            String fieldName = entry.getKey();
+            fieldErrors.put( fieldName, new FieldError( fieldName, templatedMessage ) );
         }
     }
 
-    public FieldMappers<SourceT, TargetT> add( String name, FieldAccessors<TargetT> targetFields, FieldAccessors<SourceT> sourceFields ) {
+    public FieldMappers<TargetT, SourceT> add( String name, FieldAccessors<TargetT> targetFields, FieldAccessors<SourceT> sourceFields ) {
         return add( name, targetFields, name, sourceFields );
     }
 
-    public <R> FieldMappers<SourceT, TargetT> add( String targetName, FieldAccessors<TargetT> targetFields, String sourceName, FieldAccessors<SourceT> sourceFields ) {
+    public <R> FieldMappers<TargetT, SourceT> add( String targetName, FieldAccessors<TargetT> targetFields, String sourceName, FieldAccessors<SourceT> sourceFields ) {
         Accessor<SourceT, R> getter = extractAccessor( sourceName, sourceFields );
         return add( targetName, targetFields, getter );
     }
 
-    public <R> FieldMappers<SourceT, TargetT> add( String name, FieldAccessors<TargetT> targetFields, Function<SourceT, R> getter ) {
+    public <R> FieldMappers<TargetT, SourceT> add( String name, FieldAccessors<TargetT> targetFields, Function<SourceT, R> getter ) {
         MutableAccessor<TargetT, R> setter = extractMutableAccessor( name, targetFields );
         return add( setter, getter );
     }
 
-    public <R, S> FieldMappers<SourceT, TargetT> add( String targetName, FieldAccessors<TargetT> targetFields, String sourceName, FieldAccessors<SourceT> sourceFields, Function<S, R> transformer ) {
+    public <R, S> FieldMappers<TargetT, SourceT> add( String targetName, FieldAccessors<TargetT> targetFields, String sourceName, FieldAccessors<SourceT> sourceFields, Function<S, R> transformer ) {
         Accessor<SourceT, S> getter = extractAccessor( sourceName, sourceFields );
         return add( targetName, targetFields, getter, transformer );
     }
 
-    public <R, S> FieldMappers<SourceT, TargetT> add( String name, FieldAccessors<TargetT> targetFields, Function<SourceT, S> getter, Function<S, R> transformer ) {
+    public <R, S> FieldMappers<TargetT, SourceT> add( String name, FieldAccessors<TargetT> targetFields, Function<SourceT, S> getter, Function<S, R> transformer ) {
         MutableAccessor<TargetT, R> setter = extractMutableAccessor( name, targetFields );
         return add( setter, getter, transformer );
     }
 
-    public <R> FieldMappers<SourceT, TargetT> add( MutableAccessor<TargetT, R> setter, Function<SourceT, R> getter ) {
+    public <R> FieldMappers<TargetT, SourceT> add( MutableAccessor<TargetT, R> setter, Function<SourceT, R> getter ) {
         return add( setter.getName(), setter, getter );
     }
 
-    public <R, S> FieldMappers<SourceT, TargetT> add( MutableAccessor<TargetT, R> setter, Function<SourceT, S> getter, Function<S, R> transformer ) {
+    public <R, S> FieldMappers<TargetT, SourceT> add( MutableAccessor<TargetT, R> setter, Function<SourceT, S> getter, Function<S, R> transformer ) {
         return add( setter.getName(), setter, getter, transformer );
     }
 
-    public <R, S> FieldMappers<SourceT, TargetT> add( String fieldName, BiConsumer<TargetT, R> setter, Function<SourceT, S> getter, Function<S, R> transformer ) {
+    public <R, S> FieldMappers<TargetT, SourceT> add( String fieldName, BiConsumer<TargetT, R> setter, Function<SourceT, S> getter, Function<S, R> transformer ) {
         return add( fieldName, setter, sourceT -> transformer.apply( getter.apply( sourceT ) ) );
     }
 
-    public <R> FieldMappers<SourceT, TargetT> add( String fieldName, BiConsumer<TargetT, R> setter, Function<SourceT, R> getter ) {
+    public <R> FieldMappers<TargetT, SourceT> add( String fieldName, BiConsumer<TargetT, R> setter, Function<SourceT, R> getter ) {
         Mapper<?> prev = mappers.put( fieldName, new Mapper<>( setter, getter ) );
         if ( prev != null ) {
             throw new Error( "Attempt to register a duplicate field of: " + fieldName );
@@ -66,9 +93,9 @@ public class FieldMappers<SourceT, TargetT> {
         return this;
     }
 
-    private FieldMappers( Class<SourceT> sourceT, Class<TargetT> targetT ) {
-        this.sourceT = assertNotNull( sourceT, "sourceClass" );
+    private FieldMappers( Class<TargetT> targetT, Class<SourceT> sourceT ) {
         this.targetT = assertNotNull( targetT, "targetClass" );
+        this.sourceT = assertNotNull( sourceT, "sourceClass" );
     }
 
     private class Mapper<R> {

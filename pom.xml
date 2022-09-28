@@ -6,7 +6,7 @@
 
     <groupId>org.litesoft</groupId>
     <artifactId>object-fields</artifactId>
-    <version>2.0.8</version>
+    <version>3.0.3</version>
     <packaging>jar</packaging>
 
     <name>object-fields</name>
@@ -59,9 +59,15 @@
     <dependencies>
         <dependency>
             <groupId>org.litesoft</groupId>
-            <artifactId>type-utils</artifactId>
-            <version>[1.0.5,1.1)</version>
+            <artifactId>annotations</artifactId>
+            <version>1.1.2</version>
         </dependency>
+        <dependency>
+            <groupId>org.litesoft</groupId>
+            <artifactId>type-utils</artifactId>
+            <version>[1.0.7,1.1)</version>
+        </dependency>
+
         <dependency>
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter</artifactId>

@@ -1,51 +1,97 @@
 package org.litesoft.fields;
 
+import java.util.List;
+import java.util.function.BiPredicate;
+
 import org.junit.jupiter.api.Test;
+import org.litesoft.annotations.Significant;
+import org.litesoft.exceptions.ExceededMaxLengthException;
+import org.litesoft.utils.TemplatedMessageException;
 
 import static org.junit.jupiter.api.Assertions.*;
 
 class ObjectCentricTest {
 
-    Child child = new Child( "Pebbles", 1, new Parent( "Wilma" ), new Parent( "Fred" ) );
-    ChildDTO childDTO = new ChildDTO( child );
+    ChildISO childISO = new ChildISO( "Pebbles", 1, " Childcare Socialization ", new Parent( "Wilma" ), new Parent( "Fred" ) );
+    ChildDTO childDTO = new ChildDTO( childISO );
     SubChildDTO subChildDTO = new SubChildDTO( childDTO );
 
     @Test
-    void test_methods_Child() {
+    void test_methods_ChildISO() {
         assertEquals( String.join( "\n"
-                              , "name: 'Pebbles'"
-                              , "age: 1"
-                              , "parent1:"
-                              , "  name: 'Wilma'"
-                              , "parent2:"
-                              , "  name: 'Fred'" // No Newline
-                      ).replace( '\'', '"' ),
-                      child.toString() );
+                , "name: 'Pebbles'"
+                , "age: 1"
+                , "educationLevel: ' Childcare Socialization '"
+                , "parent1:"
+                , "  name: 'Wilma'"
+                , "parent2:"
+                , "  name: 'Fred'" // No Newline
+        ).replace( '\'', '"' ), childISO.toString() );
 
-        child.setAge( 2 );
-        int age = Child.FAS.getValue( child, "age" );
+        expectErrors( 0 );
+
+        assertEquals( String.join( "\n"
+                , "name: 'Pebbles'"
+                , "age: 1"
+                , "educationLevel: 'Childcare Socialization'"
+                , "parent1:"
+                , "  name: 'Wilma'"
+                , "parent2:"
+                , "  name: 'Fred'" // No Newline
+        ).replace( '\'', '"' ), childISO.toString() );
+
+        childISO.setAge( 2 );
+        int age = ChildISO.ISO_FAS.getValue( childISO, "age" );
         assertEquals( 2, age );
-        Child.FAS.setValue( child, "age", age + 1 );
-        assertEquals( 3, child.getAge() );
+        ChildISO.ISO_FAS.setValue( childISO, "age", age + 1 );
+        assertEquals( 3, childISO.getAge() );
 
         assertEquals( String.join( "\n"
-                              , "name: 'Pebbles'"
-                              , "age: 3"
-                              , "parent1:"
-                              , "  name: 'Wilma'"
-                              , "parent2:"
-                              , "  name: 'Fred'" // No Newline
-                      ).replace( '\'', '"' ),
-                      child.toString() );
+                , "name: 'Pebbles'"
+                , "age: 3"
+                , "educationLevel: 'Childcare Socialization'"
+                , "parent1:"
+                , "  name: 'Wilma'"
+                , "parent2:"
+                , "  name: 'Fred'" // No Newline
+        ).replace( '\'', '"' ), childISO.toString() );
 
         assertEquals( String.join( "\n",
                                    "" +
-                                   "name    String(36) (required)",
-                                   "age     Integer",
-                                   "parent1 Parent     (gender? & more metaData)",
-                                   "parent2 Parent",
+                                   "name           String(36) (required)",
+                                   "age            Integer",
+                                   "educationLevel String",
+                                   "parent1        Parent     (gender? & more metaData)",
+                                   "parent2        Parent",
                                    "" // Newline!
-        ), Child.FAS.toString() );
+        ), ChildISO.ISO_FAS.toString() );
+
+        expectErrors( 0 );
+
+        childISO.setName( "  " );
+        expectedError( expectErrors( 1 ), "name", RequiredFieldInsignificantException.MSG, String::equals );
+
+        childISO.setName( "1234567-101234567-201234567-301234567" );
+        expectedError( expectErrors( 1 ), "name", ExceededMaxLengthException.MSG_PREFIX, String::startsWith );
+
+        childISO.setName( "Pebbles" ); // restore the OK data
+
+        childISO.setAge( -1 );
+        expectedError( expectErrors( 1 ), "age", ChildISO.AGE_NEGATIVE_PREFIX, String::startsWith );
+    }
+
+    @SuppressWarnings("UnusedReturnValue")
+    private List<FieldError> expectedError( List<FieldError> errors, String expectedFieldName, String expectedMsgPortion, BiPredicate<String, String> tester ) {
+        FieldError error = errors.get( 0 );
+        assertEquals( expectedFieldName, error.getFieldName() );
+        assertTrue( tester.test( error.getFmtString(), expectedMsgPortion ), expectedFieldName );
+        return errors.subList( 1, errors.size() );
+    }
+
+    private List<FieldError> expectErrors( int expected ) {
+        List<FieldError> errors = childISO.validate();
+        assertEquals( expected, errors.size() );
+        return errors;
     }
 
     @Test
@@ -65,7 +111,7 @@ class ObjectCentricTest {
                                    "parent1name String",
                                    "parent2name String",
                                    "" // Newline!
-        ), ChildDTO.FAS.toString() );
+        ), ChildDTO.DTO_FAS.toString() );
 
         ChildDTO c2 = new ChildDTO( childDTO );
 
@@ -96,33 +142,44 @@ class ObjectCentricTest {
         }
     }
 
-    private static final class Child {
-        static FieldAccessors<Child> FAS = FieldAccessors.of( Child.class )
-                .required( "name", Child::getName ).withType( String.class ).addMaxLength( 36 )
-                .optional( "age", Child::getAge, Child::setAge ).withType( Integer.class )
-                .optional( "parent1", Child::getParent1 ).withType( Parent.class ).withMetaData( "gender?" ).addMetaData( "more metaData" )
-                .optional( "parent2", Child::getParent2 ).withType( Parent.class )
+    private static final class ChildISO {
+        static FieldAccessors<ChildISO> ISO_FAS = FieldAccessors.of( ChildISO.class )
+                .required( "name", ChildISO::getName, ChildISO::setName ).withType( String.class, Significant.ConstrainTo::valueOrNull, Significant.Check::value ).addMaxLength( 36 )
+                .optional( "age", ChildISO::getAge, ChildISO::setAge ).withType( Integer.class, ChildISO::limitAge )
+                .optional( "educationLevel", ChildISO::getEducationLevel, ChildISO::setEducationLevel ).withType( String.class, Significant.ConstrainTo::valueOrNull )
+                .optional( "parent1", ChildISO::getParent1 ).withType( Parent.class ).withMetaData( "gender?" ).addMetaData( "more metaData" )
+                .optional( "parent2", ChildISO::getParent2 ).withType( Parent.class )
                 .done();
 
-        private final String name;
+        private String name;
         private int age;
+        private String educationLevel;
         private final Parent parent1;
         private final Parent parent2;
 
-        private Child( String name, int age, Parent parent1, Parent parent2 ) {
+        private ChildISO( String name, int age, String educationLevel, Parent parent1, Parent parent2 ) {
             this.name = name;
             this.age = age;
+            this.educationLevel = educationLevel;
             this.parent1 = parent1;
             this.parent2 = parent2;
         }
 
+        public List<FieldError> validate() {
+            return ISO_FAS.validate( this );
+        }
+
         @Override
         public String toString() {
-            return new ToStringBuilder().addAll( this, FAS ).toString();
+            return new ToStringBuilder().addAll( this, ISO_FAS ).toString();
         }
 
         public String getName() {
             return name;
+        }
+
+        public void setName( String name ) {
+            this.name = name;
         }
 
         public int getAge() {
@@ -131,6 +188,14 @@ class ObjectCentricTest {
 
         public void setAge( int age ) {
             this.age = age;
+        }
+
+        public String getEducationLevel() {
+            return educationLevel;
+        }
+
+        public void setEducationLevel( String educationLevel ) {
+            this.educationLevel = educationLevel;
         }
 
         public Parent getParent1() {
@@ -142,29 +207,38 @@ class ObjectCentricTest {
         }
 
         @Override
+        @SuppressWarnings("com.haulmont.jpb.EqualsDoesntCheckParameterClass")
         public boolean equals( Object o ) {
-            return FAS.equalInstancesWithEqualTypes( this, o );
+            return ISO_FAS.equalInstancesWithEqualTypes( this, o );
         }
 
         @Override
         public int hashCode() {
-            return FAS.hashCodeFrom( this );
+            return ISO_FAS.hashCodeFrom( this );
         }
+
+        private static void limitAge( Integer age ) {
+            if ( (age != null) && (age < 0) ) {
+                throw new TemplatedMessageException( AGE_NEGATIVE_PREFIX + ".|0|.", "" + age );
+            }
+        }
+
+        public static final String AGE_NEGATIVE_PREFIX = "age may not be negative, but was: ";
     }
 
     private static class ChildDTO {
-        static FieldAccessors<ChildDTO> FAS = FieldAccessors.of( ChildDTO.class )
+        static FieldAccessors<ChildDTO> DTO_FAS = FieldAccessors.of( ChildDTO.class )
                 .optional( "name", ChildDTO::getName, ChildDTO::setName ).withType( String.class )
                 .optional( "age", ChildDTO::getAge, ChildDTO::setAge ).withType( Integer.class )
                 .optional( "parent1name", ChildDTO::getParent1name, ChildDTO::setParent1name ).withType( String.class )
                 .optional( "parent2name", ChildDTO::getParent2name, ChildDTO::setParent2name ).withType( String.class )
                 .done();
 
-        static FieldMappers<Child, ChildDTO> FROM_CHILD_MAPPER = FieldMappers.of( Child.class, ChildDTO.class )
-                .add( "name", FAS, Child.FAS )
-                .add( "age", FAS, Child.FAS )
-                .add( "parent1name", FAS, "parent1", Child.FAS, ChildDTO::extractParentName )
-                .add( "parent2name", FAS, "parent2", Child.FAS, ChildDTO::extractParentName );
+        static FieldMappers<ChildDTO, ChildISO> FROM_CHILD_ISO_MAPPER = FieldMappers.of( ChildDTO.class, ChildISO.class )
+                .add( "name", DTO_FAS, ChildISO.ISO_FAS )
+                .add( "age", DTO_FAS, ChildISO.ISO_FAS )
+                .add( "parent1name", DTO_FAS, "parent1", ChildISO.ISO_FAS, ChildDTO::extractParentName )
+                .add( "parent2name", DTO_FAS, "parent2", ChildISO.ISO_FAS, ChildDTO::extractParentName );
 
         private static String extractParentName( Parent parent ) {
             return (parent == null) ? null : parent.name();
@@ -178,17 +252,18 @@ class ObjectCentricTest {
         public ChildDTO() {
         }
 
-        public ChildDTO( Child child ) {
-            FROM_CHILD_MAPPER.map( child, this );
+        public ChildDTO( ChildISO childISO ) {
+            FROM_CHILD_ISO_MAPPER.map( this, childISO );
         }
 
-        public ChildDTO( ChildDTO child ) {
-            FAS.populateUs( this, child );
+        @SuppressWarnings("CopyConstructorMissesField")
+        public ChildDTO( ChildDTO childDTO ) {
+            DTO_FAS.populateUs( this, childDTO );
         }
 
         @Override
         public String toString() {
-            return new ToStringBuilder().addAll( this, FAS ).toString();
+            return new ToStringBuilder().addAll( this, DTO_FAS ).toString();
         }
 
         public String getName() {
@@ -226,24 +301,24 @@ class ObjectCentricTest {
         @Override
         @SuppressWarnings("com.haulmont.jpb.EqualsDoesntCheckParameterClass")
         public boolean equals( Object o ) {
-            return FAS.equalInstancesWithEqualTypes( this, o ); // ChildDTO.equals(SubChildDTO) -> false
+            return DTO_FAS.equalInstancesWithEqualTypes( this, o ); // ChildDTO.equals(SubChildDTO) -> false
         }
 
         @Override
         public int hashCode() {
-            return FAS.hashCodeFrom( this );
+            return DTO_FAS.hashCodeFrom( this );
         }
     }
 
     private static final class SubChildDTO extends ChildDTO {
         public SubChildDTO( ChildDTO child ) {
-            FAS.populateUs( this, child );
+            DTO_FAS.populateUs( this, child );
         }
 
         @Override
         @SuppressWarnings("com.haulmont.jpb.EqualsDoesntCheckParameterClass")
         public boolean equals( Object o ) {
-            return FAS.equalInstancesWithSubTypes( this, o ); // SubChildDTO.equals(ChildDTO) -> true
+            return DTO_FAS.equalInstancesWithSubTypes( this, o ); // SubChildDTO.equals(ChildDTO) -> true
         }
     }
 }

@@ -1,32 +1,41 @@
 package org.litesoft.fields;
 
+import java.util.function.Consumer;
 import java.util.function.Function;
 
-@SuppressWarnings({"unused", "UnusedReturnValue"})
+import org.litesoft.exceptions.ExceededMaxLengthException;
+import org.litesoft.utils.Cast;
+
+//@SuppressWarnings({"unused", "UnusedReturnValue"})
+@SuppressWarnings("UnusedReturnValue")
 public class Accessor<T, R> implements Function<T, R> {
-    public static <T, R> Accessor<T, R> of( String name, Function<T, R> accessor ) {
-        return of( name, "", accessor );
+
+    public static <T, R> Accessor<T, R> of( AccessorType accessorType, String name, Function<T, R> accessor ) {
+        return new Accessor<>( accessorType, name, accessor );
     }
 
-    public static <T, R> Accessor<T, R> of( String name, String metaData, Function<T, R> accessor ) {
-        return new Accessor<>( name, metaData, accessor );
-    }
-
+    private final AccessorType accessorType;
     private final String name;
     private final Function<T, R> accessor;
     private String metaData;
     private Class<? extends R> type;
     private String typeWithOptionalSize = "";
     private Integer maxLength;
+    private Consumer<? extends R> validator;
 
-    protected Accessor( String name, String metaData, Function<T, R> accessor ) {
+    protected Accessor( AccessorType accessorType, String name, Function<T, R> accessor ) {
+        this.accessorType = accessorType;
         this.name = name;
-        this.metaData = (metaData == null) ? "" : metaData.trim();
+        this.metaData = accessorType.initialMetaData();
         this.accessor = accessor;
     }
 
     public MutableAccessor<T, R> asMutable() {
         return (this instanceof MutableAccessor<T, R>) ? (MutableAccessor<T, R>)this : null;
+    }
+
+    public AccessorType getAccessorType() {
+        return accessorType;
     }
 
     public boolean isMutable() {
@@ -39,6 +48,25 @@ public class Accessor<T, R> implements Function<T, R> {
 
     public R getValue( T instance ) {
         return accessor.apply( instance );
+    }
+
+    public void validate( T instance ) {
+        R value = normalize( instance, getValue( instance ) ); // if the value is changed then the updated value is saved
+        if ( value == null ) {
+            if ( getAccessorType() == AccessorType.required ) {
+                throw new RequiredFieldInsignificantException();
+            }
+            return;
+        }
+        if ( validator != null ) {
+            validator.accept( Cast.it( value ) );
+        }
+        if ( maxLength != null ) {
+            int actualLength = typeToLength( value );
+            if ( actualLength > maxLength ) {
+                throw new ExceededMaxLengthException( maxLength, actualLength );
+            }
+        }
     }
 
     @Override
@@ -59,6 +87,7 @@ public class Accessor<T, R> implements Function<T, R> {
         return getClass().getSimpleName() + "('" + name + "')";
     }
 
+    @SuppressWarnings("unused")
     public String description() {
         return description( new StringBuilder(), null, null ).toString();
     }
@@ -77,6 +106,7 @@ public class Accessor<T, R> implements Function<T, R> {
         }
         int relativeZero = sb.length();
         sb.append( name );
+        String metaData = getMetaData();
         if ( !typeWithOptionalSize.isEmpty() || !metaData.isEmpty() ) {
             padTo( sb, relativeZero + padNameToAtLeast );
             sb.append( ' ' );
@@ -90,6 +120,12 @@ public class Accessor<T, R> implements Function<T, R> {
             }
         }
         return sb;
+    }
+
+    public <TR extends R> Accessor<T, R> withType( Class<TR> type, Consumer<TR> validator ) {
+        withType( type );
+        this.validator = validator;
+        return this;
     }
 
     public Accessor<T, R> withType( Class<? extends R> type ) {
@@ -121,7 +157,12 @@ public class Accessor<T, R> implements Function<T, R> {
         return this;
     }
 
+    protected R normalize( T instance, R value ) {
+        return value;
+    }
+
     private void populateTypeWithOptionalSize() {
+        Class<? extends R> type = getType();
         typeWithOptionalSize = (type == null) ? "" : type.getSimpleName();
         if ( maxLength != null ) {
             typeWithOptionalSize += "(" + maxLength + ")";
@@ -134,5 +175,14 @@ public class Accessor<T, R> implements Function<T, R> {
                 sb.append( ' ' );
             }
         }
+    }
+
+    private static int typeToLength( Object o ) {
+        if ( o != null ) {
+            if ( o instanceof String ) {
+                return ((String)o).length();
+            }
+        }
+        return Integer.MIN_VALUE;
     }
 }

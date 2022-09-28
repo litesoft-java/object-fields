@@ -37,9 +37,9 @@ public class ToStringBuilder {
         if ( !sb.isEmpty() ) {
             sb.append( "\n" );
         }
-        addIndentation( sb, indent);
+        addIndentation( sb, indent );
         sb.append( name ).append( ":" );
-        if (value instanceof Indentable) {
+        if ( value instanceof Indentable ) {
             indent();
             ((Indentable)value).addFieldsTo( this );
             outdent();
@@ -55,7 +55,7 @@ public class ToStringBuilder {
     }
 
     public <T> ToStringBuilder addAll( T instance, FieldAccessors<T> fas ) {
-        return ( (instance == null) || (fas == null) ) ? this : addAll( instance, fas.getAll() );
+        return ((instance == null) || (fas == null)) ? this : addAll( instance, fas.getAll() );
     }
 
     public <T> ToStringBuilder addAll( T instance, List<Accessor<T, ?>> fas ) {

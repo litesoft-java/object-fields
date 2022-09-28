@@ -2,8 +2,9 @@ package org.litesoft.fields;
 
 import org.junit.jupiter.api.Test;
 
-import static org.junit.jupiter.api.Assertions.*;
-import static org.litesoft.fields.StringBuilderUtils.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.litesoft.fields.StringBuilderUtils.addIndentation;
+import static org.litesoft.fields.StringBuilderUtils.addQuotedTo;
 
 class StringBuilderUtilsTest {
 
@@ -18,8 +19,8 @@ class StringBuilderUtilsTest {
 
     void verify( String expected, int addIndentation, Object addQuotedTo ) {
         StringBuilder sb = new StringBuilder();
-        addIndentation(sb, addIndentation);
-        addQuotedTo(sb, addQuotedTo);
+        addIndentation( sb, addIndentation );
+        addQuotedTo( sb, addQuotedTo );
         assertEquals( expected, sb.toString() );
     }
 }

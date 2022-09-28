@@ -43,7 +43,7 @@ public class Equivalance {
     }
 
     public static <T> boolean mostly( boolean sameTypes, T us, T them, FieldAccessors<T> fas, int fromFasIndex ) {
-        if ( !sameTypes || (us == null) || (them == null)) { // Note: for this situation (null != null)!
+        if ( !sameTypes || (us == null) || (them == null) ) { // Note: for this situation (null != null)!
             return false;
         }
         List<Accessor<T, ?>> all = fas.getAll();

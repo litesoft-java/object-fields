@@ -6,9 +6,13 @@ import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.function.BiConsumer;
+import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.function.UnaryOperator;
 
 import org.litesoft.utils.Cast;
+import org.litesoft.utils.TemplatedMessage;
+import org.litesoft.utils.TemplatedMessageException;
 
 public class FieldAccessors<T> {
     static final String ERROR_ALREADY_DONE = "FieldAccessors already closed, w/ previous done()";
@@ -77,6 +81,28 @@ public class FieldAccessors<T> {
         return Arrays.equals( getValuesFrom( us ), getValuesFrom( Cast.it( them ) ) );
     }
 
+    public List<FieldError> validate( T us ) {
+        if ( us == null ) {
+            return null;
+        }
+        List<FieldError> errors = new ArrayList<>();
+        for ( Accessor<T, ?> accessor : fas.values() ) {
+            TemplatedMessage tm;
+            try {
+                accessor.validate( us );
+                continue;
+            }
+            catch ( TemplatedMessageException e ) {
+                tm = e.getTemplatedMessage();
+            }
+            catch ( RuntimeException e ) {
+                tm = new TemplatedMessage( e.getMessage() );
+            }
+            errors.add( new FieldError( accessor.getName(), tm ) );
+        }
+        return errors;
+    }
+
     public <R> Accessor<T, R> getAccessor( String name ) {
         return Cast.it( fas.get( name ) );
     }
@@ -99,24 +125,25 @@ public class FieldAccessors<T> {
 
     @SuppressWarnings("unused")
     public <R> FieldAccessors<T> auto( String name, Function<T, R> accessor ) {
-        return add( Accessor.of( name, "auto", accessor ) );
+        return add( Accessor.of( AccessorType.auto, name, accessor ) );
     }
 
+    @SuppressWarnings("unused")
     public <R> FieldAccessors<T> required( String name, Function<T, R> accessor ) {
-        return add( Accessor.of( name, "required", accessor ) );
+        return add( Accessor.of( AccessorType.required, name, accessor ) );
     }
 
     @SuppressWarnings("unused")
     public <R> FieldAccessors<T> required( String name, Function<T, R> accessor, BiConsumer<T, R> setter ) {
-        return add( MutableAccessor.of( name, "required", accessor, setter ) );
+        return add( MutableAccessor.of( AccessorType.required, name, accessor, setter ) );
     }
 
     public <R> FieldAccessors<T> optional( String name, Function<T, R> accessor ) {
-        return add( Accessor.of( name, accessor ) );
+        return add( Accessor.of( AccessorType.optional, name, accessor ) );
     }
 
     public <R> FieldAccessors<T> optional( String name, Function<T, R> accessor, BiConsumer<T, R> setter ) {
-        return add( MutableAccessor.of( name, accessor, setter ) );
+        return add( MutableAccessor.of( AccessorType.optional, name, accessor, setter ) );
     }
 
     public FieldAccessors<T> addMaxLength( int maxLength ) {
@@ -136,6 +163,21 @@ public class FieldAccessors<T> {
 
     public FieldAccessors<T> withType( Class<?> type ) {
         augmentLastAccessor().withType( type );
+        return this;
+    }
+
+    public <R> FieldAccessors<T> withType( Class<R> type, Consumer<R> validator ) {
+        augmentLastAccessor().withType( type, validator );
+        return this;
+    }
+
+    public <R> FieldAccessors<T> withType( Class<R> type, UnaryOperator<R> normalizer ) {
+        augmentLastAccessor().asMutable().withType( type, normalizer );
+        return this;
+    }
+
+    public <R> FieldAccessors<T> withType( Class<R> type, UnaryOperator<R> normalizer, Consumer<R> validator ) {
+        augmentLastAccessor().asMutable().withType( type, normalizer, validator );
         return this;
     }
 

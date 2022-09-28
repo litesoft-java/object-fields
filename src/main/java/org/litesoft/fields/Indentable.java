@@ -1,5 +1,5 @@
 package org.litesoft.fields;
 
 public interface Indentable {
-    void addFieldsTo(ToStringBuilder builder);
+    void addFieldsTo( ToStringBuilder builder );
 }
