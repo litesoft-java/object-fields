@@ -9,10 +9,21 @@ import org.litesoft.utils.TemplatedMessage;
 import org.litesoft.utils.TemplatedMessageException;
 
 public class FieldMappers<TargetT, SourceT> {
+    public interface Mapper<TargetT, SourceT> {
+        void map( SourceT source, TargetT target );
+    }
+
+    private record MapperImpl<TargetT, SourceT, R>(BiConsumer<TargetT, R> setter, Function<SourceT, R> getter) implements Mapper<TargetT, SourceT> {
+        @Override
+        public void map( SourceT source, TargetT target ) {
+            setter.accept( target, getter.apply( source ) );
+        }
+    }
+
     private final Class<TargetT> targetT;
     private final Class<SourceT> sourceT;
 
-    final LinkedHashMap<String, Mapper<?>> mappers = new LinkedHashMap<>(); // LinkedHashMap to force consistent ordering (add order)!
+    final LinkedHashMap<String, Mapper<TargetT, SourceT>> mappers = new LinkedHashMap<>(); // LinkedHashMap to force consistent ordering (add order)!
 
     public static <TargetT, SourceT> FieldMappers<TargetT, SourceT> of( Class<TargetT> targetT, Class<SourceT> sourceT ) {
         return new FieldMappers<>( targetT, sourceT );
@@ -25,10 +36,10 @@ public class FieldMappers<TargetT, SourceT> {
     public void map( TargetT target, SourceT source, Map<String, FieldError> fieldErrors ) {
         assertType( target, targetT, "target instance" );
         assertType( source, sourceT, "source instance" );
-        for ( Map.Entry<String, Mapper<?>> entry : mappers.entrySet() ) {
+        for ( Map.Entry<String, Mapper<TargetT, SourceT>> entry : mappers.entrySet() ) {
             TemplatedMessage templatedMessage;
             RuntimeException rte;
-            Mapper<?> mapper = entry.getValue();
+            Mapper<TargetT, SourceT> mapper = entry.getValue();
             try {
                 mapper.map( source, target );
                 continue;
@@ -86,7 +97,11 @@ public class FieldMappers<TargetT, SourceT> {
     }
 
     public <R> FieldMappers<TargetT, SourceT> add( String fieldName, BiConsumer<TargetT, R> setter, Function<SourceT, R> getter ) {
-        Mapper<?> prev = mappers.put( fieldName, new Mapper<>( setter, getter ) );
+        return add( fieldName, new MapperImpl<>( setter, getter ) );
+    }
+
+    public FieldMappers<TargetT, SourceT> add( String fieldName, Mapper<TargetT, SourceT> mapper ) {
+        Mapper<TargetT, SourceT> prev = mappers.put( fieldName, assertNotNull( mapper, "mapper" ) );
         if ( prev != null ) {
             throw new Error( "Attempt to register a duplicate field of: " + fieldName );
         }
@@ -96,20 +111,6 @@ public class FieldMappers<TargetT, SourceT> {
     private FieldMappers( Class<TargetT> targetT, Class<SourceT> sourceT ) {
         this.targetT = assertNotNull( targetT, "targetClass" );
         this.sourceT = assertNotNull( sourceT, "sourceClass" );
-    }
-
-    private class Mapper<R> {
-        private final BiConsumer<TargetT, R> setter;
-        private final Function<SourceT, R> getter;
-
-        public Mapper( BiConsumer<TargetT, R> setter, Function<SourceT, R> getter ) {
-            this.setter = setter;
-            this.getter = getter;
-        }
-
-        public void map( SourceT source, TargetT target ) {
-            setter.accept( target, getter.apply( source ) );
-        }
     }
 
     private <R> Accessor<SourceT, R> extractAccessor( String name, FieldAccessors<SourceT> accessors ) {

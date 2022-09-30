@@ -8,8 +8,11 @@ import java.util.List;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.function.Predicate;
 import java.util.function.UnaryOperator;
 
+import org.litesoft.annotations.NotNull;
+import org.litesoft.annotations.Significant;
 import org.litesoft.utils.Cast;
 import org.litesoft.utils.TemplatedMessage;
 import org.litesoft.utils.TemplatedMessageException;
@@ -25,8 +28,10 @@ public class FieldAccessors<T> {
 
     final LinkedHashMap<String, Accessor<T, ?>> fas = new LinkedHashMap<>(); // LinkedHashMap to force consistent ordering (add order)!
     final LinkedHashMap<String, MutableAccessor<T, ?>> mutables = new LinkedHashMap<>(); // LinkedHashMap to force consistent ordering (add order)!
+    final List<Validator<T>> validators = new ArrayList<>(); // add order!
     private final Class<T> type;
     private Accessor<T, ?> lastAccessor;
+    private boolean validatorLastAdded;
     private boolean done;
 
     public static <T> FieldAccessors<T> of( Class<T> type ) {
@@ -37,10 +42,11 @@ public class FieldAccessors<T> {
         if ( done ) {
             throw new Error( ERROR_ALREADY_DONE );
         }
-        if ( lastAccessor == null ) {
+        if ( (lastAccessor == null) && !validatorLastAdded ) {
             throw new Error( ERROR_INVALID_DONE );
         }
         lastAccessor = null;
+        validatorLastAdded = false;
         done = true;
         return this;
     }
@@ -85,12 +91,25 @@ public class FieldAccessors<T> {
         if ( us == null ) {
             return null;
         }
-        List<FieldError> errors = new ArrayList<>();
-        for ( Accessor<T, ?> accessor : fas.values() ) {
+        ErrorsCollector collector = new ErrorsCollector( us );
+        fas.values().forEach( a -> collector.validate( a.getName(), a::validate ) );
+        validators.forEach( v -> collector.validate( v.getName(), v::validate ) );
+        return collector.done();
+    }
+
+    private class ErrorsCollector {
+        private final List<FieldError> errors = new ArrayList<>();
+        private final T us;
+
+        public ErrorsCollector( T us ) {
+            this.us = us;
+        }
+
+        public void validate( String name, Consumer<T> validator ) {
             TemplatedMessage tm;
             try {
-                accessor.validate( us );
-                continue;
+                validator.accept( us );
+                return;
             }
             catch ( TemplatedMessageException e ) {
                 tm = e.getTemplatedMessage();
@@ -98,9 +117,12 @@ public class FieldAccessors<T> {
             catch ( RuntimeException e ) {
                 tm = new TemplatedMessage( e.getMessage() );
             }
-            errors.add( new FieldError( accessor.getName(), tm ) );
+            errors.add( new FieldError( name, tm ) );
         }
-        return errors;
+
+        public List<FieldError> done() {
+            return errors;
+        }
     }
 
     public <R> Accessor<T, R> getAccessor( String name ) {
@@ -121,6 +143,31 @@ public class FieldAccessors<T> {
             throw new Error( ERROR_ACCESSOR_NOT_MUTABLE_PREFIX + name );
         }
         accessor.asMutable().setValue( instance, value );
+    }
+
+    public FieldAccessors<T> addValidator( String validatorName, String errorMsg, Predicate<T> checkTrueIsError ) {
+        return addValidator( validatorName, checkTrueIsError, Significant.AssertArgument.namedValue( "errorMsg", errorMsg ) );
+    }
+
+    public FieldAccessors<T> addValidator( String validatorName, Predicate<T> checkTrueIsError, String fmtString, String... indexedFmtData ) {
+        NotNull.AssertArgument.namedValue( "checkTrueIsError", checkTrueIsError );
+        String fmtStringNormalized = Significant.AssertArgument.namedValue( "fmtString", fmtString );
+        return addValidator( validatorName, t -> {
+            if (checkTrueIsError.test( t )) {
+                throw new TemplatedMessageException( fmtStringNormalized, indexedFmtData );
+            }
+        } );
+    }
+
+    public FieldAccessors<T> addValidator( String validatorName, Consumer<T> validator ) {
+        return addValidator( new Validator<>( validatorName, validator ) );
+    }
+
+    public FieldAccessors<T> addValidator( Validator<T> validator ) {
+        validators.add( NotNull.AssertArgument.namedValue( "validator", validator ) );
+        validatorLastAdded = true;
+        lastAccessor = null;
+        return this;
     }
 
     @SuppressWarnings("unused")
@@ -226,6 +273,7 @@ public class FieldAccessors<T> {
 
     private <R> FieldAccessors<T> add( Accessor<T, R> created ) {
         lastAccessor = addRejectNull( created );
+        validatorLastAdded = false;
         if ( created.isMutable() ) {
             mutables.put( created.getName(), created.asMutable() );
         }

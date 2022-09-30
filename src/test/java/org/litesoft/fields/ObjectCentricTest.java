@@ -78,6 +78,9 @@ class ObjectCentricTest {
 
         childISO.setAge( -1 );
         expectedError( expectErrors( 1 ), "age", ChildISO.AGE_NEGATIVE_PREFIX, String::startsWith );
+
+        childISO.setAge( 0 );
+        expectedError( expectErrors( 1 ), ChildISO.TOO_YOUNG_VALIDATOR_NAME, ChildISO.TOO_YOUNG_MSG, String::equals );
     }
 
     @SuppressWarnings("UnusedReturnValue")
@@ -143,12 +146,17 @@ class ObjectCentricTest {
     }
 
     private static final class ChildISO {
+        public static final String TOO_YOUNG_VALIDATOR_NAME = "tooYoung";
+        public static final String TOO_YOUNG_MSG = "education before 1 year old is not allowed";
+        public static final String AGE_NEGATIVE_PREFIX = "age may not be negative, but was: ";
+
         static FieldAccessors<ChildISO> ISO_FAS = FieldAccessors.of( ChildISO.class )
                 .required( "name", ChildISO::getName, ChildISO::setName ).withType( String.class, Significant.ConstrainTo::valueOrNull, Significant.Check::value ).addMaxLength( 36 )
                 .optional( "age", ChildISO::getAge, ChildISO::setAge ).withType( Integer.class, ChildISO::limitAge )
                 .optional( "educationLevel", ChildISO::getEducationLevel, ChildISO::setEducationLevel ).withType( String.class, Significant.ConstrainTo::valueOrNull )
                 .optional( "parent1", ChildISO::getParent1 ).withType( Parent.class ).withMetaData( "gender?" ).addMetaData( "more metaData" )
                 .optional( "parent2", ChildISO::getParent2 ).withType( Parent.class )
+                .addValidator( TOO_YOUNG_VALIDATOR_NAME, TOO_YOUNG_MSG, child -> (child.getEducationLevel() != null) && (child.getAge() == 0) )
                 .done();
 
         private String name;
@@ -222,8 +230,6 @@ class ObjectCentricTest {
                 throw new TemplatedMessageException( AGE_NEGATIVE_PREFIX + ".|0|.", "" + age );
             }
         }
-
-        public static final String AGE_NEGATIVE_PREFIX = "age may not be negative, but was: ";
     }
 
     private static class ChildDTO {
