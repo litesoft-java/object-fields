@@ -25,7 +25,8 @@ class ObjectCentricTest {
                 , "parent1:"
                 , "  name: 'Wilma'"
                 , "parent2:"
-                , "  name: 'Fred'" // No Newline
+                , "  name: 'Fred'"
+                , "description: null" // No Newline
         ).replace( '\'', '"' ), childISO.toString() );
 
         expectErrors( 0 );
@@ -37,7 +38,8 @@ class ObjectCentricTest {
                 , "parent1:"
                 , "  name: 'Wilma'"
                 , "parent2:"
-                , "  name: 'Fred'" // No Newline
+                , "  name: 'Fred'"
+                , "description: 'Pebbles @ 1 year old'" // No Newline
         ).replace( '\'', '"' ), childISO.toString() );
 
         childISO.setAge( 2 );
@@ -53,7 +55,8 @@ class ObjectCentricTest {
                 , "parent1:"
                 , "  name: 'Wilma'"
                 , "parent2:"
-                , "  name: 'Fred'" // No Newline
+                , "  name: 'Fred'"
+                , "description: 'Pebbles @ 1 year old'" // No Newline
         ).replace( '\'', '"' ), childISO.toString() );
 
         assertEquals( String.join( "\n",
@@ -63,6 +66,7 @@ class ObjectCentricTest {
                                    "educationLevel String",
                                    "parent1        Parent     (gender? & more metaData)",
                                    "parent2        Parent",
+                                   "description    String",
                                    "" // Newline!
         ), ChildISO.ISO_FAS.toString() );
 
@@ -156,7 +160,9 @@ class ObjectCentricTest {
                 .optional( "educationLevel", ChildISO::getEducationLevel, ChildISO::setEducationLevel ).withType( String.class, Significant.ConstrainTo::valueOrNull )
                 .optional( "parent1", ChildISO::getParent1 ).withType( Parent.class ).withMetaData( "gender?" ).addMetaData( "more metaData" )
                 .optional( "parent2", ChildISO::getParent2 ).withType( Parent.class )
+                .optional( "description", ChildISO::getDescription, ChildISO::generateDescription ).withType( String.class )
                 .addValidator( TOO_YOUNG_VALIDATOR_NAME, TOO_YOUNG_MSG, child -> (child.getEducationLevel() != null) && (child.getAge() == 0) )
+                .addValueGenerator( "aug:description", ChildISO::augmentDescription )
                 .done();
 
         private String name;
@@ -164,6 +170,8 @@ class ObjectCentricTest {
         private String educationLevel;
         private final Parent parent1;
         private final Parent parent2;
+
+        private String description;
 
         private ChildISO( String name, int age, String educationLevel, Parent parent1, Parent parent2 ) {
             this.name = name;
@@ -206,6 +214,10 @@ class ObjectCentricTest {
             this.educationLevel = educationLevel;
         }
 
+        public String getDescription() {
+            return description;
+        }
+
         public Parent getParent1() {
             return parent1;
         }
@@ -229,6 +241,14 @@ class ObjectCentricTest {
             if ( (age != null) && (age < 0) ) {
                 throw new TemplatedMessageException( AGE_NEGATIVE_PREFIX + ".|0|.", "" + age );
             }
+        }
+
+        private static void generateDescription( ChildISO iso ) {
+            iso.description = iso.getName() + " @ " + iso.getAge();
+        }
+
+        private static void augmentDescription( ChildISO iso ) {
+            iso.description += " " + ((iso.getAge() == 1) ? "year" : "years") + " old";
         }
     }
 

@@ -6,7 +6,7 @@
 
     <groupId>org.litesoft</groupId>
     <artifactId>object-fields</artifactId>
-    <version>3.0.5</version>
+    <version>3.0.7</version>
     <packaging>jar</packaging>
 
     <name>object-fields</name>

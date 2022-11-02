@@ -29,9 +29,11 @@ public class FieldAccessors<T> {
     final LinkedHashMap<String, Accessor<T, ?>> fas = new LinkedHashMap<>(); // LinkedHashMap to force consistent ordering (add order)!
     final LinkedHashMap<String, MutableAccessor<T, ?>> mutables = new LinkedHashMap<>(); // LinkedHashMap to force consistent ordering (add order)!
     final List<Validator<T>> validators = new ArrayList<>(); // add order!
+    final List<ValueGenerator<T>> valueGenerators = new ArrayList<>(); // add order!
     private final Class<T> type;
     private Accessor<T, ?> lastAccessor;
     private boolean validatorLastAdded;
+    private boolean valueGeneratorLastAdded;
     private boolean done;
 
     public static <T> FieldAccessors<T> of( Class<T> type ) {
@@ -42,11 +44,12 @@ public class FieldAccessors<T> {
         if ( done ) {
             throw new Error( ERROR_ALREADY_DONE );
         }
-        if ( (lastAccessor == null) && !validatorLastAdded ) {
+        if ( (lastAccessor == null) && !validatorLastAdded && !valueGeneratorLastAdded ) {
             throw new Error( ERROR_INVALID_DONE );
         }
         lastAccessor = null;
         validatorLastAdded = false;
+        valueGeneratorLastAdded = false;
         done = true;
         return this;
     }
@@ -92,8 +95,11 @@ public class FieldAccessors<T> {
             return null;
         }
         ErrorsCollector collector = new ErrorsCollector( us );
-        fas.values().forEach( a -> collector.validate( a.getName(), a::validate ) );
-        validators.forEach( v -> collector.validate( v.getName(), v::validate ) );
+        fas.values().forEach( a -> collector.process( a.getName(), a::validate ) );
+        validators.forEach( v -> collector.process( v.getName(), v::validate ) );
+        if (collector.errors.isEmpty()) {
+            valueGenerators.forEach( g -> collector.process( g.getName(), g::generateValue ) );
+        }
         return collector.done();
     }
 
@@ -105,7 +111,7 @@ public class FieldAccessors<T> {
             this.us = us;
         }
 
-        public void validate( String name, Consumer<T> validator ) {
+        public void process( String name, Consumer<T> validator ) {
             TemplatedMessage tm;
             try {
                 validator.accept( us );
@@ -153,7 +159,7 @@ public class FieldAccessors<T> {
         NotNull.AssertArgument.namedValue( "checkTrueIsError", checkTrueIsError );
         String fmtStringNormalized = Significant.AssertArgument.namedValue( "fmtString", fmtString );
         return addValidator( validatorName, t -> {
-            if (checkTrueIsError.test( t )) {
+            if ( checkTrueIsError.test( t ) ) {
                 throw new TemplatedMessageException( fmtStringNormalized, indexedFmtData );
             }
         } );
@@ -166,18 +172,40 @@ public class FieldAccessors<T> {
     public FieldAccessors<T> addValidator( Validator<T> validator ) {
         validators.add( NotNull.AssertArgument.namedValue( "validator", validator ) );
         validatorLastAdded = true;
+        valueGeneratorLastAdded = false;
         lastAccessor = null;
         return this;
     }
 
     @SuppressWarnings("unused")
+    public FieldAccessors<T> addValueGenerator( String valueGeneratorName, Consumer<T> valueGenerator ) {
+        return addValueGenerator( new ValueGenerator<>( valueGeneratorName, valueGenerator ) );
+    }
+
+    public FieldAccessors<T> addValueGenerator( ValueGenerator<T> valueGenerator ) {
+        valueGenerators.add( NotNull.AssertArgument.namedValue( "valueGenerator", valueGenerator ) );
+        valueGeneratorLastAdded = true;
+        validatorLastAdded = false;
+        lastAccessor = null;
+        return this;
+    }
+
     public <R> FieldAccessors<T> auto( String name, Function<T, R> accessor ) {
         return add( Accessor.of( AccessorType.auto, name, accessor ) );
     }
 
     @SuppressWarnings("unused")
+    public <R> FieldAccessors<T> auto( String name, Function<T, R> accessor, Consumer<T> valueGenerator ) {
+        return auto( name, accessor ).withValueGenerator(valueGenerator);
+    }
+
     public <R> FieldAccessors<T> required( String name, Function<T, R> accessor ) {
         return add( Accessor.of( AccessorType.required, name, accessor ) );
+    }
+
+    @SuppressWarnings("unused")
+    public <R> FieldAccessors<T> required( String name, Function<T, R> accessor, Consumer<T> valueGenerator ) {
+        return required( name, accessor ).withValueGenerator(valueGenerator);
     }
 
     @SuppressWarnings("unused")
@@ -187,6 +215,11 @@ public class FieldAccessors<T> {
 
     public <R> FieldAccessors<T> optional( String name, Function<T, R> accessor ) {
         return add( Accessor.of( AccessorType.optional, name, accessor ) );
+    }
+
+    @SuppressWarnings("unused")
+    public <R> FieldAccessors<T> optional( String name, Function<T, R> accessor, Consumer<T> valueGenerator ) {
+        return optional( name, accessor ).withValueGenerator(valueGenerator);
     }
 
     public <R> FieldAccessors<T> optional( String name, Function<T, R> accessor, BiConsumer<T, R> setter ) {
@@ -241,6 +274,13 @@ public class FieldAccessors<T> {
             fa.description( sb, maxNameLen, maxTypeLen ).append( "\n" );
         }
         return sb.toString();
+    }
+
+    private FieldAccessors<T> withValueGenerator( Consumer<T> valueGenerator ) {
+        if (valueGenerator != null) {
+            valueGenerators.add( new ValueGenerator<>( augmentLastAccessor().getName(), valueGenerator ) );
+        }
+        return this;
     }
 
     private <R> Accessor<T, R> requiredAccessor( String name ) {
